@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+  <title>Campaign URL Tracker</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+    h2 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: left;}
+    td { word-wrap: anywhere; width: 200px;}
+    th { background: #eee; word-wrap: break-word;}
+    input, textarea { padding: 8px; margin: 5px; width: 100%; }
+    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+    div{
+      width: 1360px;
+    }
+    select {
+      width: 1360px;
+      margin: 0 auto;
+      height: 400px;
+    }
+    .copy-btn { cursor: pointer; color: blue; }
+    .search-bar { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <h2>Affiliate Campaign Tracker</h2>
+
+  <div>
+    <input id="campaign-url" placeholder="Campaign URL (e.g. https://manychat.pxf.io/9g4dny)" />
+    <input id="campaign-tags" placeholder="Tags/Notes (e.g. chat, ai)" />
+    <select id="url-country" placeholder="Country (e.g. IN, US)">
+      <option value="IN">IN</option>
+      <option value="US">US</option>
+      <option value="CA">CA</option>
+      <option value="AU">AU</option>
+      <option value="GB">GB</option>
+      <option value="NZ">NZ</option>
+      <option value="SG">SG</option>
+      <option value="HK">HK</option>
+      <option value="MY">MY</option>
+      <option value="PH">PH</option>
+      <option value="ID">ID</option>
+      <option value="TH">TH</option>
+      <option value="VN">VN</option>
+      <option value="BR">BR</option>
+      <option value="AR">AR</option>
+      <option value="CO">CO</option>
+      <option value="MX">MX</option>
+      <option value="PE">PE</option>
+      <option value="CL">CL</option>
+      <option value="EC">EC</option>
+      <option value="BO">BO</option>
+      <option value="UY">UY</option>
+      <option value="PY">PY</option>
+      <option value="UZ">UZ</option>
+      <option value="KZ">KZ</option>
+      <option value="KG">KG</option>
+      <option value="AZ">AZ</option>
+      <option value="GE">GE</option>
+      <option value="AM">AM</option>
+      <option value="TM">TM</option>
+    </select>
+    <button onclick="addCampaign()">Add Campaign</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <input class="search-bar" id="searchInput" onkeyup="filterTable()" placeholder="Search...">
+  </div>
+
+  <table id="campaignTable">
+    <thead>
+      <tr>
+        <th>Date Added</th>
+        <th>Campaign URL</th>
+        <th>Final URL</th>
+        <th>Tags/Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    const campaigns = [];
+
+    function loadCampaigns() {
+      const stored = localStorage.getItem('campaigns');
+      if (stored) {
+        campaigns.push(...JSON.parse(stored));
+        renderTable();
+      }
+    }
+
+    window.onload = loadCampaigns;
+
+    function saveCampaigns() {
+      localStorage.setItem('campaigns', JSON.stringify(campaigns));
+    }
+
+    function formatDate(date) {
+      return new Date(date).toLocaleString();
+    }
+
+    function isValidURL(str) {
+      try {
+        new URL(str);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function resolveFinalUrl(url) {
+      try {
+        const response = await fetch(`/resolve?url=${encodeURIComponent(url)}`);
+        const data = await response.json();
+        return data.finalUrl;
+      } catch (e) {
+        return "Error resolving";
+      }
+    }
+
+    async function addCampaign() {
+      const url = document.getElementById('campaign-url').value;
+      const tags = document.getElementById('campaign-tags').value;
+      if (!url) return alert("Campaign URL is required");
+      if (!isValidURL(url)) return alert("Please enter a valid URL");
+
+      const now = new Date();
+      const finalUrl = await resolveFinalUrl(url);
+
+      const campaign = {
+        id: Date.now(),
+        url,
+        finalUrl,
+        tags,
+        date: formatDate(now),
+      };
+
+      campaigns.push(campaign);
+      renderTable();
+      saveCampaigns();
+
+      document.getElementById('campaign-url').value = '';
+      document.getElementById('campaign-tags').value = '';
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      campaigns.forEach(c => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${c.date}</td>
+          <td contenteditable="true" onblur="updateCampaignURL(${c.id}, this.innerText)">${c.url}</td>
+          <td><span>${c.finalUrl}</span> <button class="copy-btn" onclick="copyToClipboard('${c.finalUrl}')">Copy</button></td>
+          <td contenteditable="true" onblur="updateTags(${c.id}, this.innerText)">${c.tags}</td>
+          <td><button onclick="deleteCampaign(${c.id})">Delete</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateCampaignURL(id, newUrl) {
+      const campaign = campaigns.find(c => c.id === id);
+      if (campaign) {
+        campaign.url = newUrl;
+        campaign.finalUrl = 'Loading...';
+        renderTable();
+        resolveFinalUrl(newUrl).then(url => {
+          campaign.finalUrl = url;
+          renderTable();
+          saveCampaigns();
+        });
+      }
+    }
+
+    function updateTags(id, newTags) {
+      const campaign = campaigns.find(c => c.id === id);
+      if (campaign) {
+        campaign.tags = newTags;
+        saveCampaigns();
+      }
+    }
+
+    function deleteCampaign(id) {
+      const index = campaigns.findIndex(c => c.id === id);
+      if (index !== -1) {
+        campaigns.splice(index, 1);
+        renderTable();
+        saveCampaigns();
+      }
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => alert("Copied!"));
+    }
+
+    function exportCSV() {
+      let csv = "Date,Campaign URL,Final URL,Tags\n";
+      campaigns.forEach(c => {
+        csv += `"${c.date}","${c.url}","${c.finalUrl}","${c.tags}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = "campaigns.csv";
+      a.click();
+    }
+
+    function filterTable() {
+      const input = document.getElementById('searchInput').value.toLowerCase();
+      const rows = document.getElementById('campaignTable').getElementsByTagName('tr');
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+      }
+    }
+    </script>
+      <script>
+        $(document).ready(function() {
+            // Initialize Select2 on the country select element
+            $('#url-country').select2({
+                placeholder: 'Search for a country',
+                allowClear: true
+            });
+        });
+    </script>
+</body>
+</html>
