@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
@@ -8,26 +9,74 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
   <title>Campaign URL Tracker</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
-    h2 { color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
-    th, td { padding: 10px; border: 1px solid #ddd; text-align: left;}
-    td { word-wrap: anywhere; width: 200px;}
-    th { background: #eee; word-wrap: break-word;}
-    input, textarea { padding: 8px; margin: 5px; width: 100%; }
-    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
-    div{
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    td {
+      word-wrap: anywhere;
+      width: 200px;
+    }
+
+    th {
+      background: #eee;
+      word-wrap: break-word;
+    }
+
+    input,
+    textarea {
+      padding: 8px;
+      margin: 5px;
+      width: 100%;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    div {
       width: 1360px;
     }
+
     select {
       width: 1360px;
       margin: 0 auto;
       height: 400px;
     }
-    .copy-btn { cursor: pointer; color: blue; }
-    .search-bar { margin-bottom: 10px; }
+
+    .copy-btn {
+      cursor: pointer;
+      color: blue;
+    }
+
+    .search-bar {
+      margin-bottom: 10px;
+    }
   </style>
 </head>
+
 <body>
 
   <h2>Affiliate Campaign Tracker</h2>
@@ -83,6 +132,13 @@
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
+    <tfoot>
+      <tr id="loadingRow" style="display: none;">
+        <td colspan="5" style="text-align: center; font-style: italic;">
+          Loading...
+        </td>
+      </tr>
+    </tfoot>
   </table>
 
   <script>
@@ -128,8 +184,11 @@
     async function addCampaign() {
       const url = document.getElementById('campaign-url').value;
       const tags = document.getElementById('campaign-tags').value;
+      const loadingRow = document.getElementById('loadingRow');
       if (!url) return alert("Campaign URL is required");
       if (!isValidURL(url)) return alert("Please enter a valid URL");
+
+      loadingRow.style.display = 'table-row';
 
       const now = new Date();
       const finalUrl = await resolveFinalUrl(url);
@@ -145,6 +204,8 @@
       campaigns.push(campaign);
       renderTable();
       saveCampaigns();
+
+      loadingRow.style.display = 'none';
 
       document.getElementById('campaign-url').value = '';
       document.getElementById('campaign-tags').value = '';
@@ -224,15 +285,16 @@
         row.style.display = text.includes(input) ? '' : 'none';
       }
     }
-    </script>
-    <script>
-      $(document).ready(function() {
-        // Initialize Select2 on the country select element
-        $('#url-country').select2({
-            placeholder: 'Search for a country',
-            allowClear: true
-        });
+  </script>
+  <script>
+    $(document).ready(function () {
+      // Initialize Select2 on the country select element
+      $('#url-country').select2({
+        placeholder: 'Search for a country',
+        allowClear: true
       });
-    </script>
+    });
+  </script>
 </body>
+
 </html>
